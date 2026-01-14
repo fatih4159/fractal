@@ -1,8 +1,10 @@
-import { useState, useRef, KeyboardEvent } from 'react'
-import { Send, Paperclip, Smile, X } from 'lucide-react'
+import { useState, KeyboardEvent } from 'react'
+import { Send, Paperclip, Smile, X, Link2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { cn } from '../lib/utils'
+import { Label } from './ui/label'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog'
 
 interface ComposerBarProps {
   onSendMessage?: (message: { body: string; mediaUrls?: string[] }) => void
@@ -18,21 +20,19 @@ export function ComposerBar({
   placeholder = 'Type a message...',
 }: ComposerBarProps) {
   const [message, setMessage] = useState('')
-  const [attachments, setAttachments] = useState<File[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [mediaUrls, setMediaUrls] = useState<string[]>([])
+  const [mediaDialogOpen, setMediaDialogOpen] = useState(false)
+  const [mediaUrlDraft, setMediaUrlDraft] = useState('')
 
   const handleSend = () => {
-    if (message.trim() || attachments.length > 0) {
-      // In a real implementation, you would upload files and get URLs
-      const mediaUrls = attachments.map((file) => URL.createObjectURL(file))
-
+    if (message.trim() || mediaUrls.length > 0) {
       onSendMessage?.({
         body: message.trim(),
         mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
       })
 
       setMessage('')
-      setAttachments([])
+      setMediaUrls([])
     }
   }
 
@@ -43,16 +43,23 @@ export function ComposerBar({
     }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    setAttachments((prev) => [...prev, ...files])
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
+  const removeAttachment = (index: number) => {
+    setMediaUrls((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const removeAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index))
+  const addMediaUrl = () => {
+    const next = mediaUrlDraft.trim()
+    if (!next) return
+    try {
+      // Validate URL format (supports https://, http://, etc.)
+      // eslint-disable-next-line no-new
+      new URL(next)
+    } catch {
+      return
+    }
+    setMediaUrls((prev) => [...prev, next])
+    setMediaUrlDraft('')
+    setMediaDialogOpen(false)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,15 +70,22 @@ export function ComposerBar({
   return (
     <div className="border-t bg-background p-4">
       {/* Attachments Preview */}
-      {attachments.length > 0 && (
+      {mediaUrls.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-2">
-          {attachments.map((file, index) => (
+          {mediaUrls.map((url, index) => (
             <div
               key={index}
               className="relative group rounded-lg border p-2 pr-8 bg-muted text-sm flex items-center space-x-2"
             >
-              <Paperclip className="h-4 w-4 text-muted-foreground" />
-              <span className="max-w-[200px] truncate">{file.name}</span>
+              <Link2 className="h-4 w-4 text-muted-foreground" />
+              <a
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="max-w-[260px] truncate underline underline-offset-2"
+              >
+                {url}
+              </a>
               <Button
                 variant="ghost"
                 size="icon"
@@ -92,19 +106,11 @@ export function ComposerBar({
           variant="ghost"
           size="icon"
           disabled={disabled}
-          onClick={() => fileInputRef.current?.click()}
-          title="Attach file"
+          onClick={() => setMediaDialogOpen(true)}
+          title="Attach media URL"
         >
           <Paperclip className="h-5 w-5" />
         </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
-          className="hidden"
-          onChange={handleFileSelect}
-        />
 
         {/* Message Input */}
         <Input
@@ -129,11 +135,11 @@ export function ComposerBar({
         {/* Send Button */}
         <Button
           onClick={handleSend}
-          disabled={disabled || (!message.trim() && attachments.length === 0)}
+          disabled={disabled || (!message.trim() && mediaUrls.length === 0)}
           size="icon"
           className={cn(
             'transition-all',
-            message.trim() || attachments.length > 0 ? 'scale-100' : 'scale-90'
+            message.trim() || mediaUrls.length > 0 ? 'scale-100' : 'scale-90'
           )}
           title="Send message"
         >
@@ -147,6 +153,35 @@ export function ComposerBar({
           {message.length} characters
         </div>
       )}
+
+      <Dialog open={mediaDialogOpen} onOpenChange={setMediaDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Attach media URL</DialogTitle>
+            <DialogDescription>
+              Add a publicly accessible URL (Twilio can only fetch public media).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>URL</Label>
+              <Input
+                value={mediaUrlDraft}
+                onChange={(e) => setMediaUrlDraft(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setMediaDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={addMediaUrl} disabled={!mediaUrlDraft.trim()}>
+                Add
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

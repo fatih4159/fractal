@@ -1,4 +1,4 @@
-import type { ApiResponse, Contact, Conversation, Message, SendMessageRequest, SendTemplateMessageRequest } from '../../shared/types'
+import type { ApiResponse, Contact, Conversation, Message, SendMessageRequest, SendTemplateMessageRequest, ChannelType } from '../../shared/types'
 
 const API_BASE = '/api'
 
@@ -118,14 +118,26 @@ export const messagesApi = {
     return fetcher<Message>(`${API_BASE}/messages/${id}`)
   },
 
-  send: async (data: SendMessageRequest) => {
+  send: async (
+    data: SendMessageRequest & {
+      conversationId?: string
+      contactId?: string
+    }
+  ) => {
     return fetcher<Message>(`${API_BASE}/messages`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
   },
 
-  sendTemplate: async (data: SendTemplateMessageRequest) => {
+  sendTemplate: async (
+    data: Omit<SendTemplateMessageRequest, 'templateSid'> & {
+      contentSid: string
+      conversationId?: string
+      contactId?: string
+      channelType: ChannelType
+    }
+  ) => {
     return fetcher<Message>(`${API_BASE}/messages/template`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -163,6 +175,12 @@ export const api = {
   post: (url: string, body?: any) =>
     fetch(url, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  put: (url: string, body?: any) =>
+    fetch(url, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
     }),

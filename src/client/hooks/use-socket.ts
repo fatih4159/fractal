@@ -3,11 +3,12 @@ import { io, Socket } from 'socket.io-client'
 import { useMessagesStore } from '../store/messages'
 import { useConversationsStore } from '../store/conversations'
 import { toast } from './use-toast'
+import { mapServerConversation, mapServerMessage } from '../lib/mappers'
 
 interface SocketEvents {
   'message:new': (data: any) => void
   'message:status': (data: any) => void
-  'conversation:update': (data: any) => void
+  'conversation:updated': (data: any) => void
   'conversation:new': (data: any) => void
   connect: () => void
   disconnect: () => void
@@ -23,6 +24,7 @@ export function useSocket() {
     (state) => state.selectedConversationId
   )
   const selectedConversationIdRef = useRef<string | null>(selectedConversationId)
+  const joinedConversationIdRef = useRef<string | null>(null)
 
   // Keep latest selection available to socket event handlers without re-creating the socket.
   useEffect(() => {
@@ -34,7 +36,7 @@ export function useSocket() {
     const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin
 
     // Initialize socket connection
-    const socket = io(socketUrl, {
+    const socket = io(`${socketUrl}/messaging`, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
@@ -55,6 +57,13 @@ export function useSocket() {
       console.log('Socket connected:', socket.id)
       setIsConnected(true)
       setError(null)
+
+      // Join currently selected conversation (if any)
+      const current = selectedConversationIdRef.current
+      if (current) {
+        socket.emit('conversation:join', current)
+        joinedConversationIdRef.current = current
+      }
     })
 
     socket.on('disconnect', () => {
@@ -72,27 +81,40 @@ export function useSocket() {
     socket.on('message:new', (data) => {
       console.log('New message received:', data)
 
-      // Add message to store
-      addMessage(data.message)
+      // Server may emit either the message directly or { message, conversation }
+      const serverMessage = data?.message ?? data
+      const message = mapServerMessage(serverMessage)
+      addMessage(message)
 
       // Update conversation
-      if (data.conversation) {
-        updateConversation(data.conversation.id, {
-          lastMessage: data.message.body,
-          lastMessageAt: new Date(data.message.createdAt),
+      const serverConversation = data?.conversation ?? serverMessage?.conversation
+      if (serverConversation?.id) {
+        const conv = mapServerConversation(serverConversation)
+
+        // Ensure the conversation exists; if not, add it.
+        addConversation(conv)
+
+        updateConversation(conv.id, {
+          lastMessage: message.body ?? '',
+          lastMessageAt: message.createdAt,
         })
 
-        // Increment unread count if not the current conversation
-        if (data.conversation.id !== selectedConversationIdRef.current) {
-          incrementUnreadCount(data.conversation.id)
+        // Increment unread count if not the current conversation (only for inbound)
+        if (
+          message.direction === 'INBOUND' &&
+          conv.id !== selectedConversationIdRef.current
+        ) {
+          incrementUnreadCount(conv.id)
         }
       }
 
       // Show toast notification for inbound messages
-      if (data.message.direction === 'INBOUND') {
+      if (message.direction === 'INBOUND') {
         toast({
           title: 'New Message',
-          description: data.message.body?.slice(0, 50) + (data.message.body?.length > 50 ? '...' : ''),
+          description:
+            (message.body ?? '').slice(0, 50) +
+            ((message.body ?? '').length > 50 ? '...' : ''),
         })
       }
     })
@@ -110,9 +132,11 @@ export function useSocket() {
       })
     })
 
-    socket.on('conversation:update', (data) => {
+    socket.on('conversation:updated', (data) => {
       console.log('Conversation update:', data)
-      updateConversation(data.id, data.updates)
+      if (data?.id) {
+        updateConversation(data.id, data)
+      }
     })
 
     socket.on('conversation:new', (data) => {
@@ -132,6 +156,27 @@ export function useSocket() {
       }
     }
   }, [])
+
+  // Join/leave conversation rooms based on UI selection
+  useEffect(() => {
+    if (!socketRef.current || !isConnected) return
+
+    const prev = joinedConversationIdRef.current
+    const next = selectedConversationId
+
+    if (prev && prev !== next) {
+      socketRef.current.emit('conversation:leave', prev)
+    }
+
+    if (next && prev !== next) {
+      socketRef.current.emit('conversation:join', next)
+      joinedConversationIdRef.current = next
+    }
+
+    if (!next) {
+      joinedConversationIdRef.current = null
+    }
+  }, [selectedConversationId, isConnected])
 
   // Emit events helper
   const emit = <K extends keyof SocketEvents>(

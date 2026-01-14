@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react'
 import { useContactsStore } from '../store/contacts'
 import { api } from '../lib/api'
 import { toast } from './use-toast'
+import type { ApiResponse, Contact as ServerContact } from '../../shared/types'
 
 export function useContacts() {
   const contacts = useContactsStore((state) => state.contacts)
@@ -26,15 +27,17 @@ export function useContacts() {
       clearError()
 
       const response = await api.get('/api/contacts')
-      const data = await response.json()
+      const payload = (await response.json()) as ApiResponse<ServerContact[]>
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch contacts')
+        throw new Error(payload?.error?.message || 'Failed to fetch contacts')
       }
 
       // Transform date strings to Date objects
-      const transformedContacts = data.contacts.map((contact: any) => ({
+      const serverContacts = payload?.data ?? []
+      const transformedContacts = serverContacts.map((contact: any) => ({
         ...contact,
+        email: contact.email ?? undefined,
         createdAt: new Date(contact.createdAt),
         updatedAt: new Date(contact.updatedAt),
       }))
@@ -76,16 +79,21 @@ export function useContacts() {
         clearError()
 
         const response = await api.post('/api/contacts', data)
-        const result = await response.json()
+        const result = (await response.json()) as ApiResponse<ServerContact>
 
         if (!response.ok) {
-          throw new Error(result.error || 'Failed to create contact')
+          throw new Error(result?.error?.message || 'Failed to create contact')
+        }
+
+        if (!result.data) {
+          throw new Error('Failed to create contact')
         }
 
         const contact = {
-          ...result.contact,
-          createdAt: new Date(result.contact.createdAt),
-          updatedAt: new Date(result.contact.updatedAt),
+          ...(result.data as any),
+          email: (result.data as any).email ?? undefined,
+          createdAt: new Date((result.data as any).createdAt),
+          updatedAt: new Date((result.data as any).updatedAt),
         }
 
         addContact(contact)
@@ -127,17 +135,22 @@ export function useContacts() {
         setLoading(true)
         clearError()
 
-        const response = await api.patch(`/api/contacts/${contactId}`, data)
-        const result = await response.json()
+        const response = await api.put(`/api/contacts/${contactId}`, data)
+        const result = (await response.json()) as ApiResponse<ServerContact>
 
         if (!response.ok) {
-          throw new Error(result.error || 'Failed to update contact')
+          throw new Error(result?.error?.message || 'Failed to update contact')
+        }
+
+        if (!result.data) {
+          throw new Error('Failed to update contact')
         }
 
         const contact = {
-          ...result.contact,
-          createdAt: new Date(result.contact.createdAt),
-          updatedAt: new Date(result.contact.updatedAt),
+          ...(result.data as any),
+          email: (result.data as any).email ?? undefined,
+          createdAt: new Date((result.data as any).createdAt),
+          updatedAt: new Date((result.data as any).updatedAt),
         }
 
         updateContact(contactId, contact)
@@ -172,8 +185,8 @@ export function useContacts() {
         const response = await api.delete(`/api/contacts/${contactId}`)
 
         if (!response.ok) {
-          const data = await response.json()
-          throw new Error(data.error || 'Failed to delete contact')
+          const payload = (await response.json()) as ApiResponse<null>
+          throw new Error(payload?.error?.message || 'Failed to delete contact')
         }
 
         deleteContact(contactId)

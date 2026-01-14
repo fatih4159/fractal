@@ -4,11 +4,16 @@ import { ConversationList } from './components/ConversationList'
 import { ChatWindow } from './components/ChatWindow'
 import { ComposerBar } from './components/ComposerBar'
 import { MessageDetailDrawer } from './components/MessageDetailDrawer'
+import { ContactsPage } from './components/ContactsPage'
+import { TemplatesPage } from './components/TemplatesPage'
 import { Toaster } from './components/ui/toaster'
+import { Input } from './components/ui/input'
 import { useSocket } from './hooks/use-socket'
 import { useConversations } from './hooks/use-conversations'
 import { useMessages } from './hooks/use-messages'
 import { useUIStore } from './store/ui'
+import { useContactsStore } from './store/contacts'
+import { Search } from 'lucide-react'
 
 function App() {
   // Initialize Socket.IO connection
@@ -21,6 +26,8 @@ function App() {
   const selectedMessageId = useUIStore((state) => state.selectedMessageId)
   const closeMessageDetail = useUIStore((state) => state.closeMessageDetail)
   const openMessageDetail = useUIStore((state) => state.openMessageDetail)
+  const searchQuery = useUIStore((state) => state.searchQuery)
+  const setSearchQuery = useUIStore((state) => state.setSearchQuery)
 
   // Conversations
   const {
@@ -30,10 +37,12 @@ function App() {
     isLoading: conversationsLoading,
     selectConversation,
     markAsRead,
+    archiveConversation,
+    removeConversation,
   } = useConversations()
 
   // Messages for selected conversation
-  const { messages, isLoading: messagesLoading, isSending, sendMessage } =
+  const { messages, isLoading: messagesLoading, isSending, sendMessage, removeMessage } =
     useMessages(selectedConversationId)
 
   // Handle conversation selection
@@ -57,6 +66,33 @@ function App() {
     ? messages.find((msg) => msg.id === selectedMessageId)
     : null
 
+  const visibleConversations = conversations
+    .filter((c) => !c.isArchived)
+    .filter((c) => {
+      const q = searchQuery.trim().toLowerCase()
+      if (!q) return true
+      const hay = [c.contactName, c.contactPhone, c.lastMessage ?? ''].join(' ').toLowerCase()
+      return hay.includes(q)
+    })
+
+  const exportConversation = () => {
+    if (!selectedConversationId || !selectedConversation) return
+    const payload = {
+      conversation: selectedConversation,
+      exportedAt: new Date().toISOString(),
+      messages,
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `conversation-${selectedConversation.contactName}-${selectedConversationId}.json`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
@@ -76,9 +112,18 @@ function App() {
                     Connecting to server...
                   </div>
                 )}
+                <div className="relative mt-3">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search..."
+                    className="pl-10"
+                  />
+                </div>
               </div>
               <ConversationList
-                conversations={conversations}
+                conversations={visibleConversations}
                 selectedConversationId={selectedConversationId}
                 onConversationSelect={handleConversationSelect}
                 isLoading={conversationsLoading}
@@ -93,6 +138,13 @@ function App() {
                     contactName={selectedConversation.contactName}
                     contactPhone={selectedConversation.contactPhone}
                     channelType={selectedConversation.channelType}
+                    onViewContact={() => {
+                      useContactsStore.getState().selectContact(selectedConversation.contactId)
+                      setActiveTab('contacts')
+                    }}
+                    onExportConversation={exportConversation}
+                    onArchiveConversation={() => void archiveConversation(selectedConversation.id)}
+                    onDeleteConversation={() => void removeConversation(selectedConversation.id)}
                   />
                   <div className="flex-1 overflow-hidden">
                     <ChatWindow
@@ -125,27 +177,15 @@ function App() {
 
         {/* Contacts Tab */}
         {activeTab === 'contacts' && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">👥</div>
-              <h2 className="text-2xl font-semibold mb-2">Contacts</h2>
-              <p className="text-muted-foreground">
-                Contact management coming soon
-              </p>
-            </div>
+          <div className="flex-1 overflow-hidden">
+            <ContactsPage />
           </div>
         )}
 
         {/* Templates Tab */}
         {activeTab === 'templates' && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">📝</div>
-              <h2 className="text-2xl font-semibold mb-2">Templates</h2>
-              <p className="text-muted-foreground">
-                Message templates coming soon
-              </p>
-            </div>
+          <div className="flex-1 overflow-hidden">
+            <TemplatesPage />
           </div>
         )}
       </div>
@@ -155,6 +195,7 @@ function App() {
         message={selectedMessage || null}
         open={messageDetailOpen}
         onClose={closeMessageDetail}
+        onDelete={(messageId) => void removeMessage(messageId)}
       />
 
       {/* Toast Notifications */}
