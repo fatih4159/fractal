@@ -69,18 +69,52 @@ export function TemplatesPage() {
     })
   }, [templates, query])
 
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadMeta, setLoadMeta] = useState<{ source?: string; warning?: string; count?: number } | null>(null)
+
   const load = async () => {
     setIsLoading(true)
+    setLoadError(null)
+    setLoadMeta(null)
     try {
       const res = await templatesApi.list()
+      
+      // Check if the response indicates an error
+      if (!res.success && res.error) {
+        const errorInfo = res.error as { message?: string; details?: string; suggestion?: string }
+        setLoadError(errorInfo.message || 'Failed to load templates')
+        toast({
+          title: 'Template Loading Error',
+          description: `${errorInfo.message}${errorInfo.details ? `: ${errorInfo.details}` : ''}`,
+          variant: 'destructive',
+        })
+        setTemplates([])
+        return
+      }
+      
       setTemplates(res.data ?? [])
+      
+      // Store metadata for display
+      const meta = (res as any).meta
+      if (meta) {
+        setLoadMeta(meta)
+        if (meta.warning) {
+          toast({
+            title: 'Warning',
+            description: meta.warning,
+          })
+        }
+      }
+      
       if (!selectedId && (res.data ?? []).length > 0) {
         setSelectedId(getTemplateId((res.data ?? [])[0]))
       }
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load templates'
+      setLoadError(errorMessage)
       toast({
         title: 'Error',
-        description: err instanceof Error ? err.message : 'Failed to load templates',
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {
@@ -154,7 +188,17 @@ export function TemplatesPage() {
       <div className="w-96 border-r flex flex-col">
         <div className="p-4 border-b space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Templates</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Templates</h2>
+              {loadMeta?.source && (
+                <Badge variant="outline" className="text-xs">
+                  {loadMeta.source === 'twilio' ? '🔄 Live' : '💾 Cached'}
+                </Badge>
+              )}
+              {loadMeta?.count !== undefined && (
+                <span className="text-xs text-muted-foreground">({loadMeta.count})</span>
+              )}
+            </div>
             <Button variant="outline" size="sm" onClick={load} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
@@ -174,8 +218,26 @@ export function TemplatesPage() {
         <ScrollArea className="flex-1">
           {isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Loading templates...</div>
+          ) : loadError ? (
+            <div className="p-6 space-y-4">
+              <div className="text-sm text-destructive font-medium">{loadError}</div>
+              <p className="text-xs text-muted-foreground">
+                Make sure your Twilio account has Content API access and templates created.
+              </p>
+              <Button variant="outline" size="sm" onClick={load}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground">No templates found</div>
+            <div className="p-6 space-y-2">
+              <div className="text-sm text-muted-foreground">No templates found</div>
+              {loadMeta?.source === 'twilio' && (
+                <p className="text-xs text-muted-foreground">
+                  Create templates in your Twilio Console under Content API.
+                </p>
+              )}
+            </div>
           ) : (
             <div className="p-2 space-y-2">
               {filtered.map((t) => {
@@ -195,8 +257,16 @@ export function TemplatesPage() {
                         <div className="text-xs text-muted-foreground truncate">{id}</div>
                       </div>
                       <div className="flex items-center space-x-2">
+                        {t?.approvalStatus && t.approvalStatus !== 'unknown' && (
+                          <Badge 
+                            variant={t.approvalStatus === 'approved' ? 'default' : 'secondary'} 
+                            className={`text-xs ${t.approvalStatus === 'approved' ? 'bg-green-600' : ''}`}
+                          >
+                            {t.approvalStatus}
+                          </Badge>
+                        )}
                         {t?.language && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="outline" className="text-xs">
                             {t.language}
                           </Badge>
                         )}
