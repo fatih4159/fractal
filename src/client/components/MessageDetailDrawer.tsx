@@ -26,7 +26,7 @@ interface StatusEvent {
 
 interface Message {
   id: string
-  twilioSid?: string
+  twilioSid?: string | null
   body: string
   from: string
   to: string
@@ -35,8 +35,8 @@ interface Message {
   status: MessageStatus
   mediaUrls?: string[]
   statusHistory?: StatusEvent[]
-  errorCode?: string
-  errorMessage?: string
+  errorCode?: string | null
+  errorMessage?: string | null
   createdAt: Date | string
   sentAt?: Date | string
   deliveredAt?: Date | string
@@ -70,7 +70,16 @@ export function MessageDetailDrawer({
         setLoading(true)
         const resp = await messagesApi.get(message.id)
         if (cancelled) return
-        setDetails(resp.data ?? null)
+        setDetails(
+          resp.data
+            ? ({
+                ...(resp.data as any),
+                twilioSid: (resp.data as any).twilioSid ?? null,
+                errorCode: (resp.data as any).errorCode ?? null,
+                errorMessage: (resp.data as any).errorMessage ?? null,
+              } as any)
+            : null
+        )
       } catch (err) {
         if (cancelled) return
         toast({

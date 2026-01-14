@@ -37,6 +37,7 @@ export function useContacts() {
       const serverContacts = payload?.data ?? []
       const transformedContacts = serverContacts.map((contact: any) => ({
         ...contact,
+        email: contact.email ?? undefined,
         createdAt: new Date(contact.createdAt),
         updatedAt: new Date(contact.updatedAt),
       }))
@@ -84,8 +85,13 @@ export function useContacts() {
           throw new Error(result?.error?.message || 'Failed to create contact')
         }
 
+        if (!result.data) {
+          throw new Error('Failed to create contact')
+        }
+
         const contact = {
-          ...result.data,
+          ...(result.data as any),
+          email: (result.data as any).email ?? undefined,
           createdAt: new Date((result.data as any).createdAt),
           updatedAt: new Date((result.data as any).updatedAt),
         }
@@ -136,8 +142,13 @@ export function useContacts() {
           throw new Error(result?.error?.message || 'Failed to update contact')
         }
 
+        if (!result.data) {
+          throw new Error('Failed to update contact')
+        }
+
         const contact = {
-          ...result.data,
+          ...(result.data as any),
+          email: (result.data as any).email ?? undefined,
           createdAt: new Date((result.data as any).createdAt),
           updatedAt: new Date((result.data as any).updatedAt),
         }
