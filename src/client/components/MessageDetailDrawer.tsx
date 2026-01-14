@@ -1,4 +1,4 @@
-import { X, Copy, Download, Trash2 } from 'lucide-react'
+import { Copy, Download, Trash2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Separator } from './ui/separator'
@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from './ui/dialog'
 
 type MessageStatus = 'QUEUED' | 'SENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED' | 'UNDELIVERED' | 'CANCELED'

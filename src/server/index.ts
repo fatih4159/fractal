@@ -10,6 +10,25 @@ import { fileURLToPath } from 'url'
 import env from './config/env.js'
 import { setupSocketIO } from './socket/index.js'
 
+function getDatabaseInfo(databaseUrl: string) {
+  try {
+    const url = new URL(databaseUrl)
+    const database = url.pathname.replace(/^\//, '')
+    const schema = url.searchParams.get('schema') ?? 'public'
+    const host = url.hostname
+    const port = url.port || '5432'
+
+    return { host, port, database, schema }
+  } catch {
+    return null
+  }
+}
+
+function isSafeSqlIdentifier(value: string) {
+  // Allow only typical Postgres identifier characters to avoid accidental injection in debug SQL.
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(value)
+}
+
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -18,6 +37,41 @@ const __dirname = path.dirname(__filename)
 export const prisma = new PrismaClient({
   log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
 })
+
+const dbInfo = getDatabaseInfo(env.DATABASE_URL)
+if (dbInfo) {
+  console.log(`💾 Database: ${dbInfo.host}:${dbInfo.port}/${dbInfo.database} (schema=${dbInfo.schema})`)
+}
+
+async function verifyCriticalTables() {
+  if (!dbInfo || !isSafeSqlIdentifier(dbInfo.schema)) return
+
+  const schema = dbInfo.schema
+  const criticalTables = ['conversations', 'messages', 'contacts']
+  const missing: string[] = []
+
+  for (const table of criticalTables) {
+    // to_regclass returns NULL if the relation doesn't exist (no exception).
+    const rows = await prisma.$queryRaw<Array<{ regclass: string | null }>>(
+      `SELECT to_regclass('${schema}.${table}')::text AS regclass`
+    )
+    const exists = rows[0]?.regclass != null
+    if (!exists) missing.push(`${schema}.${table}`)
+  }
+
+  if (missing.length > 0) {
+    console.warn(
+      [
+        '⚠️  Database schema mismatch detected.',
+        `Missing tables: ${missing.join(', ')}`,
+        'This usually means either:',
+        '- DATABASE_URL points to a different database than expected, or',
+        '- migrations were not applied to this database/schema.',
+        'If you use a non-public schema, ensure DATABASE_URL contains ?schema=<your_schema>.',
+      ].join('\n')
+    )
+  }
+}
 
 // Initialize Express
 const app = express()
@@ -154,12 +208,24 @@ process.on('SIGINT', shutdown)
 // Start server
 const PORT = parseInt(env.PORT, 10)
 
-httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log('🚀 Fractal Server Started')
-  console.log(`📡 Server: http://localhost:${PORT}`)
-  console.log(`🌍 Environment: ${env.NODE_ENV}`)
-  console.log(`🔌 WebSocket: Ready`)
-  console.log('✅ Ready to handle requests')
-})
+async function start() {
+  try {
+    await prisma.$connect()
+    await verifyCriticalTables()
+
+    httpServer.listen(PORT, '0.0.0.0', () => {
+      console.log('🚀 Fractal Server Started')
+      console.log(`📡 Server: http://localhost:${PORT}`)
+      console.log(`🌍 Environment: ${env.NODE_ENV}`)
+      console.log(`🔌 WebSocket: Ready`)
+      console.log('✅ Ready to handle requests')
+    })
+  } catch (error) {
+    console.error('❌ Failed to start server:', error)
+    process.exit(1)
+  }
+}
+
+void start()
 
 export { io }

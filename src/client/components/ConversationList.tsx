@@ -10,15 +10,15 @@ interface Conversation {
   contactName: string
   contactPhone: string
   channelType: ChannelType
-  lastMessage: string
-  lastMessageAt: Date | string
+  lastMessage: string | null
+  lastMessageAt: Date | string | null
   unreadCount: number
   isArchived?: boolean
 }
 
 interface ConversationListProps {
   conversations: Conversation[]
-  selectedConversationId?: string
+  selectedConversationId?: string | null
   onConversationSelect?: (conversationId: string) => void
   isLoading?: boolean
 }
@@ -105,12 +105,12 @@ export function ConversationList({
                     {conversation.contactName}
                   </h3>
                   <span className="text-xs text-muted-foreground ml-2 shrink-0">
-                    {formatDate(conversation.lastMessageAt)}
+                    {conversation.lastMessageAt ? formatDate(conversation.lastMessageAt) : ''}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground truncate">
-                    {conversation.lastMessage}
+                    {conversation.lastMessage ?? ''}
                   </p>
                   {conversation.unreadCount > 0 && (
                     <Badge
