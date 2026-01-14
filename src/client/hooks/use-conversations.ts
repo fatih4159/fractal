@@ -3,6 +3,31 @@ import { useConversationsStore } from '../store/conversations'
 import { api } from '../lib/api'
 import { toast } from './use-toast'
 
+function getContactPhoneForChannel(contact: any, channelType: string): string {
+  const channels: any[] = contact?.channels ?? []
+  const matching = channels.filter((c) => c.type === channelType)
+  const primary = matching.find((c) => c.isPrimary)
+  return (primary ?? matching[0])?.identifier ?? ''
+}
+
+function mapServerConversation(conv: any) {
+  const contact = conv?.contact ?? {}
+  return {
+    id: conv.id,
+    contactId: conv.contactId,
+    contactName: contact.name ?? 'Unknown',
+    contactPhone: getContactPhoneForChannel(contact, conv.channelType) || contact.name || '',
+    channelType: conv.channelType,
+    lastMessage: conv.lastMessage ?? null,
+    lastMessageAt: conv.lastMessageAt ? new Date(conv.lastMessageAt) : null,
+    unreadCount: conv.unreadCount ?? 0,
+    isArchived: conv.isArchived ?? false,
+    createdAt: conv.createdAt ? new Date(conv.createdAt) : new Date(),
+    updatedAt: conv.updatedAt ? new Date(conv.updatedAt) : new Date(),
+    metadata: conv.metadata ?? undefined,
+  }
+}
+
 export function useConversations() {
   const conversations = useConversationsStore((state) => state.conversations)
   const selectedConversationId = useConversationsStore(
@@ -31,16 +56,11 @@ export function useConversations() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch conversations')
+        throw new Error(data?.error?.message || 'Failed to fetch conversations')
       }
 
-      // Transform date strings to Date objects
-      const transformedConversations = data.conversations.map((conv: any) => ({
-        ...conv,
-        lastMessageAt: conv.lastMessageAt ? new Date(conv.lastMessageAt) : null,
-        createdAt: new Date(conv.createdAt),
-        updatedAt: new Date(conv.updatedAt),
-      }))
+      const serverConversations = data?.data ?? []
+      const transformedConversations = serverConversations.map(mapServerConversation)
 
       // Sort by last message date (most recent first)
       transformedConversations.sort((a: any, b: any) => {
@@ -75,17 +95,10 @@ export function useConversations() {
         const result = await response.json()
 
         if (!response.ok) {
-          throw new Error(result.error || 'Failed to create conversation')
+          throw new Error(result?.error?.message || 'Failed to create conversation')
         }
 
-        const conversation = {
-          ...result.conversation,
-          lastMessageAt: result.conversation.lastMessageAt
-            ? new Date(result.conversation.lastMessageAt)
-            : null,
-          createdAt: new Date(result.conversation.createdAt),
-          updatedAt: new Date(result.conversation.updatedAt),
-        }
+        const conversation = mapServerConversation(result?.data)
 
         addConversation(conversation)
         selectConversation(conversation.id)
@@ -117,13 +130,13 @@ export function useConversations() {
   const archiveConversation = useCallback(
     async (conversationId: string) => {
       try {
-        const response = await api.patch(`/api/conversations/${conversationId}`, {
-          isArchived: true,
+        const response = await api.patch(`/api/conversations/${conversationId}/archive`, {
+          archive: true,
         })
 
         if (!response.ok) {
           const data = await response.json()
-          throw new Error(data.error || 'Failed to archive conversation')
+          throw new Error(data?.error?.message || 'Failed to archive conversation')
         }
 
         updateConversation(conversationId, { isArchived: true })
@@ -149,13 +162,8 @@ export function useConversations() {
   const removeConversation = useCallback(
     async (conversationId: string) => {
       try {
-        const response = await api.delete(`/api/conversations/${conversationId}`)
-
-        if (!response.ok) {
-          const data = await response.json()
-          throw new Error(data.error || 'Failed to delete conversation')
-        }
-
+        // Server-side delete endpoint is not implemented yet.
+        // Keep this action as a safe no-op for now.
         deleteConversation(conversationId)
 
         toast({

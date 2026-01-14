@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { prisma } from '../../index.js'
 import { z } from 'zod'
 import { ChannelType } from '../../../shared/types.js'
+import { syncConversationFromTwilio } from '../../services/twilio/history.js'
 
 const router = Router()
 
@@ -256,6 +257,34 @@ router.patch('/:id/read', async (req, res) => {
     })
   } catch (error) {
     console.error('Error marking conversation as read:', error)
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+    })
+  }
+})
+
+/**
+ * POST /api/conversations/:id/sync - Backfill/refresh messages from Twilio
+ */
+router.post('/:id/sync', async (req, res) => {
+  try {
+    const limit = typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : undefined
+    const includeMedia = req.query.includeMedia === 'false' ? false : true
+
+    const result = await syncConversationFromTwilio(req.params.id, {
+      limit: Number.isFinite(limit as any) ? limit : undefined,
+      includeMedia,
+    })
+
+    res.json({
+      success: true,
+      data: result,
+    })
+  } catch (error) {
+    console.error('Error syncing conversation from Twilio:', error)
     res.status(500).json({
       success: false,
       error: {
