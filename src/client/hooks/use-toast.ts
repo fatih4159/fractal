@@ -80,46 +80,67 @@ export const reducer = (state: State, action: Action): State => {
       }
 
     case 'UPDATE_TOAST':
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
-        ),
+      if (!action.toast.id) return state
+      {
+        let didChange = false
+        const nextToasts = state.toasts.map((t) => {
+          if (t.id !== action.toast.id) return t
+          const next = { ...t, ...action.toast }
+          // If nothing actually changed, keep reference to avoid re-render loops
+          const same =
+            next.open === t.open &&
+            next.title === t.title &&
+            next.description === t.description &&
+            next.variant === t.variant &&
+            next.onOpenChange === t.onOpenChange &&
+            next.action === t.action
+          if (same) return t
+          didChange = true
+          return next
+        })
+
+        return didChange ? { ...state, toasts: nextToasts } : state
       }
 
     case 'DISMISS_TOAST': {
       const { toastId } = action
 
+      let didChange = false
+
+      const nextToasts = state.toasts.map((t) => {
+        const shouldDismiss = t.id === toastId || toastId === undefined
+        if (!shouldDismiss) return t
+
+        // Already dismissed -> keep reference (prevents nested update loops)
+        if (t.open === false) return t
+
+        didChange = true
+        return { ...t, open: false }
+      })
+
+      if (!didChange) {
+        return state
+      }
+
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {
-        state.toasts.forEach((toast) => {
+        nextToasts.forEach((toast) => {
           addToRemoveQueue(toast.id)
         })
       }
 
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === toastId || toastId === undefined
-            ? {
-                ...t,
-                open: false,
-              }
-            : t
-        ),
-      }
+      return { ...state, toasts: nextToasts }
     }
     case 'REMOVE_TOAST':
       if (action.toastId === undefined) {
-        return {
-          ...state,
-          toasts: [],
-        }
+        return state.toasts.length ? { ...state, toasts: [] } : state
       }
-      return {
-        ...state,
-        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+      {
+        const nextToasts = state.toasts.filter((t) => t.id !== action.toastId)
+        return nextToasts.length === state.toasts.length
+          ? state
+          : { ...state, toasts: nextToasts }
       }
     default:
       return state
@@ -131,10 +152,10 @@ const listeners: Array<(state: State) => void> = []
 let memoryState: State = { toasts: [] }
 
 function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action)
-  listeners.forEach((listener) => {
-    listener(memoryState)
-  })
+  const nextState = reducer(memoryState, action)
+  if (nextState === memoryState) return
+  memoryState = nextState
+  listeners.forEach((listener) => listener(memoryState))
 }
 
 type Toast = Omit<ToasterToast, 'id'>
