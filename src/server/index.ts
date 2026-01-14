@@ -52,9 +52,9 @@ async function verifyCriticalTables() {
 
   for (const table of criticalTables) {
     // to_regclass returns NULL if the relation doesn't exist (no exception).
-    const rows = await prisma.$queryRaw<Array<{ regclass: string | null }>>(
-      `SELECT to_regclass('${schema}.${table}')::text AS regclass`
-    )
+    const relation = `${schema}.${table}`
+    const rows =
+      await prisma.$queryRaw<Array<{ regclass: string | null }>>`SELECT to_regclass(${relation})::text AS regclass`
     const exists = rows[0]?.regclass != null
     if (!exists) missing.push(`${schema}.${table}`)
   }
