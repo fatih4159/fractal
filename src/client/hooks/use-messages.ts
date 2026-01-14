@@ -32,16 +32,27 @@ export function useMessages(conversationId: string | null) {
       setLoading(true)
       clearError()
 
-      const response = await api.get(`/api/messages?conversationId=${conversationId}`)
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch messages')
+      // Best-effort: backfill from Twilio before reading from DB.
+      // If Twilio credentials aren't configured, we still show DB messages.
+      try {
+        await api.post(`/api/conversations/${conversationId}/sync?limit=200`)
+      } catch {
+        // ignored (sync is best-effort)
       }
 
+      const response = await api.get(`/api/messages?conversationId=${conversationId}`)
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload?.error?.message || 'Failed to fetch messages')
+      }
+
+      const serverMessages = payload?.data ?? []
+
       // Transform date strings to Date objects
-      const transformedMessages = data.messages.map((msg: any) => ({
+      const transformedMessages = serverMessages.map((msg: any) => ({
         ...msg,
+        body: msg.body ?? '',
         createdAt: new Date(msg.createdAt),
         updatedAt: new Date(msg.updatedAt),
         sentAt: msg.sentAt ? new Date(msg.sentAt) : undefined,
@@ -88,15 +99,16 @@ export function useMessages(conversationId: string | null) {
         const result = await response.json()
 
         if (!response.ok) {
-          throw new Error(result.error || 'Failed to send message')
+          throw new Error(result?.error?.message || 'Failed to send message')
         }
 
         // Transform date strings
         const message = {
-          ...result.message,
-          createdAt: new Date(result.message.createdAt),
-          updatedAt: new Date(result.message.updatedAt),
-          sentAt: result.message.sentAt ? new Date(result.message.sentAt) : undefined,
+          ...result.data,
+          body: result.data?.body ?? '',
+          createdAt: new Date(result.data.createdAt),
+          updatedAt: new Date(result.data.updatedAt),
+          sentAt: result.data.sentAt ? new Date(result.data.sentAt) : undefined,
         }
 
         // Add message to store (optimistic update)
@@ -135,7 +147,7 @@ export function useMessages(conversationId: string | null) {
 
         if (!response.ok) {
           const data = await response.json()
-          throw new Error(data.error || 'Failed to delete message')
+          throw new Error(data?.error?.message || 'Failed to delete message')
         }
 
         deleteMessage(messageId)
