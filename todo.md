@@ -45,20 +45,19 @@
 - [x] API Client (Fetch-basiert)
 - [x] Utility Functions
 
+### Phase 7: UI Components
+- [x] shadcn/ui Basis-Komponenten installieren
+- [x] Base UI Components (Button, Input, Avatar, Badge, etc.)
+- [x] Sidebar Component
+- [x] Header Component
+- [x] ConversationList Component
+- [x] ChatWindow Component
+- [x] MessageBubble Component
+- [x] MessageDetailDrawer Component
+- [x] ComposerBar Component
+- [x] ContactCard Component
+
 ## 🔄 In Arbeit
-
-### Phase 7: UI Components (Nächste Schritte)
-- [ ] shadcn/ui Basis-Komponenten installieren
-- [ ] Sidebar Component
-- [ ] Header Component
-- [ ] ConversationList Component
-- [ ] ChatWindow Component
-- [ ] MessageBubble Component
-- [ ] MessageDetailDrawer Component
-- [ ] ComposerBar Component
-- [ ] ContactCard Component
-
-## 📋 Ausstehend
 
 ### Phase 8: State Management & Hooks
 - [ ] Zustand Store Setup
@@ -66,6 +65,8 @@
 - [ ] Messages Hook
 - [ ] Conversations Hook
 - [ ] Contacts Hook
+
+## 📋 Ausstehend
 
 ### Phase 9: Integration & Polishing
 - [ ] Frontend-Backend Integration
@@ -84,5 +85,5 @@
 
 ---
 
-**Status:** Backend vollständig implementiert ✅ | Frontend Grundstruktur vorhanden ✅
-**Nächster Schritt:** UI Komponenten mit shadcn/ui implementieren
+**Status:** Backend vollständig implementiert ✅ | UI Komponenten komplett ✅
+**Nächster Schritt:** State Management & Hooks implementieren
