@@ -202,8 +202,10 @@ export function useContacts() {
 
   // Fetch contacts on mount
   useEffect(() => {
+    // Run once on mount (prevents accidental re-fetch loops if deps are unstable)
     fetchContacts()
-  }, [fetchContacts])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return {
     contacts,

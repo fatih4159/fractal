@@ -19,14 +19,15 @@ export function useSocket() {
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const addMessage = useMessagesStore((state) => state.addMessage)
-  const updateMessage = useMessagesStore((state) => state.updateMessage)
-  const updateConversation = useConversationsStore((state) => state.updateConversation)
-  const addConversation = useConversationsStore((state) => state.addConversation)
-  const incrementUnreadCount = useConversationsStore((state) => state.incrementUnreadCount)
   const selectedConversationId = useConversationsStore(
     (state) => state.selectedConversationId
   )
+  const selectedConversationIdRef = useRef<string | null>(selectedConversationId)
+
+  // Keep latest selection available to socket event handlers without re-creating the socket.
+  useEffect(() => {
+    selectedConversationIdRef.current = selectedConversationId
+  }, [selectedConversationId])
 
   useEffect(() => {
     // Get the socket URL from environment or default to same host
@@ -41,6 +42,13 @@ export function useSocket() {
     })
 
     socketRef.current = socket
+
+    // Pull latest store actions (avoid unstable deps causing reconnect loops)
+    const addMessage = useMessagesStore.getState().addMessage
+    const updateMessage = useMessagesStore.getState().updateMessage
+    const updateConversation = useConversationsStore.getState().updateConversation
+    const addConversation = useConversationsStore.getState().addConversation
+    const incrementUnreadCount = useConversationsStore.getState().incrementUnreadCount
 
     // Connection event handlers
     socket.on('connect', () => {
@@ -75,7 +83,7 @@ export function useSocket() {
         })
 
         // Increment unread count if not the current conversation
-        if (data.conversation.id !== selectedConversationId) {
+        if (data.conversation.id !== selectedConversationIdRef.current) {
           incrementUnreadCount(data.conversation.id)
         }
       }
@@ -123,14 +131,7 @@ export function useSocket() {
         socket.disconnect()
       }
     }
-  }, [
-    addMessage,
-    updateMessage,
-    updateConversation,
-    addConversation,
-    incrementUnreadCount,
-    selectedConversationId,
-  ])
+  }, [])
 
   // Emit events helper
   const emit = <K extends keyof SocketEvents>(
