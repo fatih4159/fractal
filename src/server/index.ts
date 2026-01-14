@@ -10,6 +10,20 @@ import { fileURLToPath } from 'url'
 import env from './config/env.js'
 import { setupSocketIO } from './socket/index.js'
 
+function getDatabaseInfo(databaseUrl: string) {
+  try {
+    const url = new URL(databaseUrl)
+    const database = url.pathname.replace(/^\//, '')
+    const schema = url.searchParams.get('schema') ?? 'public'
+    const host = url.hostname
+    const port = url.port || '5432'
+
+    return { host, port, database, schema }
+  } catch {
+    return null
+  }
+}
+
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -18,6 +32,11 @@ const __dirname = path.dirname(__filename)
 export const prisma = new PrismaClient({
   log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
 })
+
+const dbInfo = getDatabaseInfo(env.DATABASE_URL)
+if (dbInfo) {
+  console.log(`💾 Database: ${dbInfo.host}:${dbInfo.port}/${dbInfo.database} (schema=${dbInfo.schema})`)
+}
 
 // Initialize Express
 const app = express()
