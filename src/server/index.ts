@@ -5,8 +5,14 @@ import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import { PrismaClient } from '@prisma/client'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import env from './config/env.js'
 import { setupSocketIO } from './socket/index.js'
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Initialize Prisma Client
 export const prisma = new PrismaClient({
@@ -82,11 +88,34 @@ app.use('/api/templates', templatesRouter)
 app.use('/api/webhooks', webhooksRouter)
 app.use('/webhooks/twilio', twilioWebhooksRouter)
 
+// 404 handler for API routes (before static files)
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      message: 'API route not found',
+    },
+  })
+})
+
+app.use('/webhooks/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      message: 'Webhook route not found',
+    },
+  })
+})
+
 // Serve static files in production
 if (env.NODE_ENV === 'production') {
-  app.use(express.static('dist/client'))
+  const clientPath = path.resolve(__dirname, '../client')
+  console.log(`📁 Serving static files from: ${clientPath}`)
+  app.use(express.static(clientPath))
+
+  // SPA fallback - serve index.html for all other routes
   app.get('*', (req, res) => {
-    res.sendFile('index.html', { root: 'dist/client' })
+    res.sendFile(path.join(clientPath, 'index.html'))
   })
 }
 
@@ -98,16 +127,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     error: {
       message: err.message || 'Internal server error',
       ...(env.NODE_ENV === 'development' && { stack: err.stack }),
-    },
-  })
-})
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: {
-      message: 'Route not found',
     },
   })
 })
