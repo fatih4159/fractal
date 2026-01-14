@@ -267,6 +267,40 @@ router.patch('/:id/read', async (req, res) => {
 })
 
 /**
+ * DELETE /api/conversations/:id - Delete a conversation (cascades messages/status events)
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    const id = req.params.id
+    const existing = await prisma.conversation.findUnique({ where: { id } })
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Conversation not found',
+        },
+      })
+    }
+
+    await prisma.conversation.delete({ where: { id } })
+
+    res.json({
+      success: true,
+      data: null,
+    })
+  } catch (error) {
+    console.error('Error deleting conversation:', error)
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+    })
+  }
+})
+
+/**
  * POST /api/conversations/:id/sync - Backfill/refresh messages from Twilio
  */
 router.post('/:id/sync', async (req, res) => {

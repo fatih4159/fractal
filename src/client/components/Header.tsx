@@ -17,6 +17,10 @@ interface HeaderProps {
   channelType?: 'SMS' | 'MMS' | 'WHATSAPP' | 'MESSENGER'
   isOnline?: boolean
   onSearch?: (query: string) => void
+  onViewContact?: () => void
+  onExportConversation?: () => void
+  onArchiveConversation?: () => void
+  onDeleteConversation?: () => void
 }
 
 export function Header({
@@ -25,6 +29,10 @@ export function Header({
   channelType,
   isOnline = false,
   onSearch,
+  onViewContact,
+  onExportConversation,
+  onArchiveConversation,
+  onDeleteConversation,
 }: HeaderProps) {
   const getChannelBadgeColor = (type?: string) => {
     switch (type) {
@@ -112,11 +120,24 @@ export function Header({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>View Contact</DropdownMenuItem>
-              <DropdownMenuItem>Export Conversation</DropdownMenuItem>
+              <DropdownMenuItem onClick={onViewContact} disabled={!onViewContact}>
+                View Contact
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={onExportConversation}
+                disabled={!onExportConversation}
+              >
+                Export Conversation
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Archive</DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem onClick={onArchiveConversation} disabled={!onArchiveConversation}>
+                Archive
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={onDeleteConversation}
+                disabled={!onDeleteConversation}
+              >
                 Delete Conversation
               </DropdownMenuItem>
             </DropdownMenuContent>

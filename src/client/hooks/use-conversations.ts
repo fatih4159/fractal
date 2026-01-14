@@ -138,8 +138,13 @@ export function useConversations() {
   const removeConversation = useCallback(
     async (conversationId: string) => {
       try {
-        // Server-side delete endpoint is not implemented yet.
-        // Keep this action as a safe no-op for now.
+        const response = await api.delete(`/api/conversations/${conversationId}`)
+
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data?.error?.message || 'Failed to delete conversation')
+        }
+
         deleteConversation(conversationId)
 
         toast({
@@ -161,8 +166,13 @@ export function useConversations() {
 
   // Mark conversation as read
   const markAsRead = useCallback(
-    (conversationId: string) => {
+    async (conversationId: string) => {
       resetUnreadCount(conversationId)
+      try {
+        await api.patch(`/api/conversations/${conversationId}/read`)
+      } catch {
+        // best-effort
+      }
     },
     [resetUnreadCount]
   )
