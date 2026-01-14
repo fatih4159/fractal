@@ -1,0 +1,178 @@
+// Fractal - Twilio Multi-Channel Messaging Platform
+// Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Contact Model - Manages contacts with multi-channel support
+model Contact {
+  id            String         @id @default(cuid())
+  name          String
+  email         String?
+  channels      Channel[]
+  conversations Conversation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  metadata      Json?
+
+  @@map("contacts")
+}
+
+// Channel Model - Links contacts to their communication channels
+model Channel {
+  id         String      @id @default(cuid())
+  contactId  String
+  contact    Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  type       ChannelType
+  identifier String // Phone number or WhatsApp ID
+  isVerified Boolean     @default(false)
+  isPrimary  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([type, identifier])
+  @@index([contactId])
+  @@map("channels")
+}
+
+// Conversation Model - Groups messages into conversations
+model Conversation {
+  id          String      @id @default(cuid())
+  contactId   String
+  contact     Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  channelType ChannelType
+  messages    Message[]
+  lastMessage String?
+  lastMessageAt DateTime?
+  unreadCount Int         @default(0)
+  isArchived  Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  metadata    Json?
+
+  @@index([contactId])
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+// Message Model - Stores all messages with full tracking
+model Message {
+  id             String        @id @default(cuid())
+  twilioSid      String?       @unique
+  conversationId String
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction      Direction
+  channelType    ChannelType
+  from           String
+  to             String
+  body           String?       @db.Text
+  mediaUrls      String[]
+  status         MessageStatus
+  statusHistory  StatusEvent[]
+  errorCode      String?
+  errorMessage   String?       @db.Text
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  metadata       Json?
+
+  @@index([conversationId])
+  @@index([twilioSid])
+  @@index([status])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+// StatusEvent Model - Tracks the full status history of messages
+model StatusEvent {
+  id         String        @id @default(cuid())
+  messageId  String
+  message    Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  status     MessageStatus
+  timestamp  DateTime      @default(now())
+  rawPayload Json? // Original Twilio webhook payload
+
+  @@index([messageId])
+  @@index([timestamp])
+  @@map("status_events")
+}
+
+// Webhook Model - Manages external webhook registrations
+model Webhook {
+  id          String   @id @default(cuid())
+  url         String
+  events      String[] // Array of event types to subscribe to
+  secret      String // Secret for signing webhook payloads
+  isActive    Boolean  @default(true)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("webhooks")
+}
+
+// ApiKey Model - Manages API keys for external system authentication
+model ApiKey {
+  id          String   @id @default(cuid())
+  name        String
+  key         String   @unique
+  lastUsedAt  DateTime?
+  isActive    Boolean  @default(true)
+  permissions String[] // Array of permissions
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("api_keys")
+}
+
+// Template Model - Stores WhatsApp Business message templates
+model Template {
+  id             String   @id @default(cuid())
+  twilioSid      String   @unique
+  name           String
+  language       String
+  status         String
+  channelType    ChannelType
+  contentType    String?
+  variables      Json? // Template variable definitions
+  body           String   @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([channelType])
+  @@map("templates")
+}
+
+// Enums
+
+enum ChannelType {
+  SMS
+  MMS
+  WHATSAPP
+  MESSENGER
+}
+
+enum MessageStatus {
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  UNDELIVERED
+  CANCELED
+}
+
+enum Direction {
+  INBOUND
+  OUTBOUND
+}
