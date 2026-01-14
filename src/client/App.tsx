@@ -4,6 +4,7 @@ import { ConversationList } from './components/ConversationList'
 import { ChatWindow } from './components/ChatWindow'
 import { ComposerBar } from './components/ComposerBar'
 import { MessageDetailDrawer } from './components/MessageDetailDrawer'
+import { ContactsPage } from './components/ContactsPage'
 import { Toaster } from './components/ui/toaster'
 import { useSocket } from './hooks/use-socket'
 import { useConversations } from './hooks/use-conversations'
@@ -125,14 +126,8 @@ function App() {
 
         {/* Contacts Tab */}
         {activeTab === 'contacts' && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">👥</div>
-              <h2 className="text-2xl font-semibold mb-2">Contacts</h2>
-              <p className="text-muted-foreground">
-                Contact management coming soon
-              </p>
-            </div>
+          <div className="flex-1 overflow-hidden">
+            <ContactsPage />
           </div>
         )}
 
