@@ -102,7 +102,7 @@ export async function getSMSDetails(messageSid: string) {
       errorCode: message.errorCode?.toString(),
       errorMessage: message.errorMessage,
       numSegments: message.numSegments,
-      mediaUrls: message.numMedia > 0 ? await getMediaUrls(messageSid) : [],
+      mediaUrls: parseInt(message.numMedia) > 0 ? await getMediaUrls(messageSid) : [],
     }
   } catch (error: any) {
     console.error('Error fetching SMS details:', error)

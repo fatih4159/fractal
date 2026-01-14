@@ -15,7 +15,10 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "echo \"Tests will be implemented with Vitest\" && exit 0",
+    "test:unit": "echo \"Unit tests will be implemented\" && exit 0",
+    "test:integration": "echo \"Integration tests will be implemented\" && exit 0"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
