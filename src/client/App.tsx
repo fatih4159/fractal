@@ -5,6 +5,7 @@ import { ChatWindow } from './components/ChatWindow'
 import { ComposerBar } from './components/ComposerBar'
 import { MessageDetailDrawer } from './components/MessageDetailDrawer'
 import { ContactsPage } from './components/ContactsPage'
+import { TemplatesPage } from './components/TemplatesPage'
 import { Toaster } from './components/ui/toaster'
 import { useSocket } from './hooks/use-socket'
 import { useConversations } from './hooks/use-conversations'
@@ -133,14 +134,8 @@ function App() {
 
         {/* Templates Tab */}
         {activeTab === 'templates' && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">📝</div>
-              <h2 className="text-2xl font-semibold mb-2">Templates</h2>
-              <p className="text-muted-foreground">
-                Message templates coming soon
-              </p>
-            </div>
+          <div className="flex-1 overflow-hidden">
+            <TemplatesPage />
           </div>
         )}
       </div>
