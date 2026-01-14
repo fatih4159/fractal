@@ -157,6 +157,24 @@ export const templatesApi = {
   },
 }
 
+// Simple fetch wrapper for hooks
+export const api = {
+  get: (url: string) => fetch(url),
+  post: (url: string, body?: any) =>
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  patch: (url: string, body?: any) =>
+    fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  delete: (url: string) => fetch(url, { method: 'DELETE' }),
+}
+
 export default {
   contacts: contactsApi,
   conversations: conversationsApi,
