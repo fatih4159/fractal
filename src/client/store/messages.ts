@@ -35,6 +35,8 @@ export interface Message {
   metadata?: Record<string, any>
 }
 
+const EMPTY_MESSAGES: Message[] = []
+
 interface MessagesState {
   messages: Record<string, Message[]> // Key: conversationId, Value: messages
   isLoading: boolean
@@ -100,7 +102,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     }),
 
   getMessagesByConversation: (conversationId) => {
-    return get().messages[conversationId] || []
+    return get().messages[conversationId] ?? EMPTY_MESSAGES
   },
 
   setLoading: (loading) => set({ isLoading: loading }),

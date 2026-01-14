@@ -1,12 +1,14 @@
 import { useEffect, useCallback } from 'react'
-import { useMessagesStore } from '../store/messages'
+import { useMessagesStore, type Message } from '../store/messages'
 import { useConversationsStore } from '../store/conversations'
 import { api } from '../lib/api'
 import { toast } from './use-toast'
 
+const EMPTY_MESSAGES: Message[] = []
+
 export function useMessages(conversationId: string | null) {
   const messages = useMessagesStore((state) =>
-    conversationId ? state.getMessagesByConversation(conversationId) : []
+    conversationId ? state.getMessagesByConversation(conversationId) : EMPTY_MESSAGES
   )
   const isLoading = useMessagesStore((state) => state.isLoading)
   const isSending = useMessagesStore((state) => state.isSending)
