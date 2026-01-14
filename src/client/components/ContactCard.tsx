@@ -1,4 +1,4 @@
-import { Mail, Phone, Calendar, Edit, Trash2, MessageSquare } from 'lucide-react'
+import { Mail, Calendar, Edit, Trash2, MessageSquare } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'

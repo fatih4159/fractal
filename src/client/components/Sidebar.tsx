@@ -11,18 +11,20 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 
+const tabs = [
+  { id: 'conversations', label: 'Conversations', icon: MessageSquare },
+  { id: 'contacts', label: 'Contacts', icon: Users },
+  { id: 'templates', label: 'Templates', icon: FileText },
+] as const
+
+type ActiveTab = (typeof tabs)[number]['id']
+
 interface SidebarProps {
-  activeTab?: string
-  onTabChange?: (tab: string) => void
+  activeTab?: ActiveTab
+  onTabChange?: (tab: ActiveTab) => void
 }
 
 export function Sidebar({ activeTab = 'conversations', onTabChange }: SidebarProps) {
-  const tabs = [
-    { id: 'conversations', label: 'Conversations', icon: MessageSquare },
-    { id: 'contacts', label: 'Contacts', icon: Users },
-    { id: 'templates', label: 'Templates', icon: FileText },
-  ]
-
   return (
     <div className="flex flex-col h-full w-16 bg-primary text-primary-foreground border-r">
       {/* Logo/Brand */}
