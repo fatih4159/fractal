@@ -57,24 +57,24 @@
 - [x] ComposerBar Component
 - [x] ContactCard Component
 
+### Phase 8: State Management & Hooks
+- [x] Zustand Store Setup (Conversations, Messages, Contacts, UI)
+- [x] Socket.IO Client Hook
+- [x] Messages Hook
+- [x] Conversations Hook
+- [x] Contacts Hook
+
 ## 🔄 In Arbeit
 
-### Phase 8: State Management & Hooks
-- [ ] Zustand Store Setup
-- [ ] Socket.IO Client Hook
-- [ ] Messages Hook
-- [ ] Conversations Hook
-- [ ] Contacts Hook
-
-## 📋 Ausstehend
-
-### Phase 9: Integration & Polishing
+### Phase 9: Integration & Polishing (Nächste Schritte)
 - [ ] Frontend-Backend Integration
 - [ ] Realtime Message Flow testen
 - [ ] Error Handling verbessern
 - [ ] Loading States
 - [ ] Toast Notifications
 - [ ] Optimistic UI Updates
+
+## 📋 Ausstehend
 
 ### Phase 10: Testing & Deployment
 - [ ] Database Migrationen testen
@@ -85,5 +85,5 @@
 
 ---
 
-**Status:** Backend vollständig implementiert ✅ | UI Komponenten komplett ✅
-**Nächster Schritt:** State Management & Hooks implementieren
+**Status:** Backend ✅ | UI Komponenten ✅ | State Management & Hooks ✅
+**Nächster Schritt:** Frontend-Backend Integration & Polishing
