@@ -6,25 +6,85 @@ export interface Template {
   language: string
   variables: Record<string, any>
   types: Record<string, any>
+  approvalStatus?: string
 }
 
 /**
  * List all approved content templates
+ * Uses the contentAndApprovals endpoint to get templates with their approval status
  */
 export async function listTemplates(): Promise<Template[]> {
   try {
-    const contents = await twilioClient.content.v1.contents.list({ pageSize: 100 })
+    // Use contentAndApprovals to get templates with approval status
+    // This is the correct endpoint for WhatsApp templates
+    const contentsWithApprovals = await twilioClient.content.v1.contentAndApprovals.list({ limit: 100 })
 
-    return contents
-      .map((content) => ({
-        sid: content.sid,
-        friendlyName: content.friendlyName || content.sid,
-        language: content.language,
-        variables: content.variables || {},
-        types: content.types || {},
-      }))
+    console.log(`[Templates] Fetched ${contentsWithApprovals.length} templates from Twilio Content API`)
+
+    // Map and filter to only include approved templates (or all if approval status is not relevant)
+    const templates = contentsWithApprovals
+      .map((content) => {
+        // The contentAndApprovals endpoint includes approval status
+        const approvalStatus = (content as any).approvalRequests?.status || 
+                               (content as any).approval_status ||
+                               'unknown'
+        
+        return {
+          sid: content.sid,
+          friendlyName: content.friendlyName || content.sid,
+          language: content.language,
+          variables: content.variables || {},
+          types: content.types || {},
+          approvalStatus,
+        }
+      })
+
+    // Log template details for debugging
+    templates.forEach((t) => {
+      console.log(`[Templates] Found: ${t.friendlyName} (${t.sid}) - Status: ${t.approvalStatus}`)
+    })
+
+    return templates
   } catch (error: any) {
-    console.error('Error listing templates:', error)
+    // Check if it's an authentication or permission error
+    const errorCode = error.code || error.status
+    const errorMessage = error.message || 'Unknown error'
+    
+    console.error('[Templates] Error listing templates from Twilio:', {
+      code: errorCode,
+      message: errorMessage,
+      moreInfo: error.moreInfo || null,
+    })
+
+    // If contentAndApprovals fails, try the basic contents endpoint as fallback
+    if (errorCode === 20003 || errorCode === 20404 || errorMessage.includes('not found')) {
+      console.log('[Templates] Falling back to basic contents.list() endpoint')
+      return await listTemplatesBasic()
+    }
+
+    throw new Error(`Failed to list templates: ${errorMessage}`)
+  }
+}
+
+/**
+ * Fallback method using basic contents.list() endpoint
+ */
+async function listTemplatesBasic(): Promise<Template[]> {
+  try {
+    const contents = await twilioClient.content.v1.contents.list({ limit: 100 })
+
+    console.log(`[Templates] Fetched ${contents.length} templates using basic endpoint`)
+
+    return contents.map((content) => ({
+      sid: content.sid,
+      friendlyName: content.friendlyName || content.sid,
+      language: content.language,
+      variables: content.variables || {},
+      types: content.types || {},
+      approvalStatus: 'unknown',
+    }))
+  } catch (error: any) {
+    console.error('[Templates] Error with basic contents endpoint:', error.message)
     throw new Error(`Failed to list templates: ${error.message}`)
   }
 }
