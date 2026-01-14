@@ -190,8 +190,10 @@ export function useConversations() {
 
   // Fetch conversations on mount
   useEffect(() => {
+    // Run once on mount (prevents accidental re-fetch loops if deps are unstable)
     fetchConversations()
-  }, [fetchConversations])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return {
     conversations,
