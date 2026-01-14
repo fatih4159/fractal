@@ -46,7 +46,10 @@ export const useConversationsStore = create<ConversationsState>((set) => ({
 
   addConversation: (conversation) =>
     set((state) => ({
-      conversations: [conversation, ...state.conversations],
+      conversations: [
+        conversation,
+        ...state.conversations.filter((c) => c.id !== conversation.id),
+      ],
     })),
 
   updateConversation: (id, updates) =>

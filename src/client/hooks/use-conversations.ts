@@ -2,31 +2,7 @@ import { useEffect, useCallback } from 'react'
 import { useConversationsStore } from '../store/conversations'
 import { api } from '../lib/api'
 import { toast } from './use-toast'
-
-function getContactPhoneForChannel(contact: any, channelType: string): string {
-  const channels: any[] = contact?.channels ?? []
-  const matching = channels.filter((c) => c.type === channelType)
-  const primary = matching.find((c) => c.isPrimary)
-  return (primary ?? matching[0])?.identifier ?? ''
-}
-
-function mapServerConversation(conv: any) {
-  const contact = conv?.contact ?? {}
-  return {
-    id: conv.id,
-    contactId: conv.contactId,
-    contactName: contact.name ?? 'Unknown',
-    contactPhone: getContactPhoneForChannel(contact, conv.channelType) || contact.name || '',
-    channelType: conv.channelType,
-    lastMessage: conv.lastMessage ?? null,
-    lastMessageAt: conv.lastMessageAt ? new Date(conv.lastMessageAt) : null,
-    unreadCount: conv.unreadCount ?? 0,
-    isArchived: conv.isArchived ?? false,
-    createdAt: conv.createdAt ? new Date(conv.createdAt) : new Date(),
-    updatedAt: conv.updatedAt ? new Date(conv.updatedAt) : new Date(),
-    metadata: conv.metadata ?? undefined,
-  }
-}
+import { mapServerConversation } from '../lib/mappers'
 
 export function useConversations() {
   const conversations = useConversationsStore((state) => state.conversations)

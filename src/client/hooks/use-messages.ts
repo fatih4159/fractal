@@ -3,6 +3,7 @@ import { useMessagesStore, type Message } from '../store/messages'
 import { useConversationsStore } from '../store/conversations'
 import { api } from '../lib/api'
 import { toast } from './use-toast'
+import { mapServerMessage } from '../lib/mappers'
 
 const EMPTY_MESSAGES: Message[] = []
 
@@ -23,6 +24,9 @@ export function useMessages(conversationId: string | null) {
   const clearError = useMessagesStore((state) => state.clearError)
 
   const updateConversation = useConversationsStore((state) => state.updateConversation)
+  const conversation = useConversationsStore((state) =>
+    conversationId ? state.conversations.find((c) => c.id === conversationId) : undefined
+  )
 
   // Fetch messages for a conversation
   const fetchMessages = useCallback(async () => {
@@ -49,16 +53,7 @@ export function useMessages(conversationId: string | null) {
 
       const serverMessages = payload?.data ?? []
 
-      // Transform date strings to Date objects
-      const transformedMessages = serverMessages.map((msg: any) => ({
-        ...msg,
-        body: msg.body ?? '',
-        createdAt: new Date(msg.createdAt),
-        updatedAt: new Date(msg.updatedAt),
-        sentAt: msg.sentAt ? new Date(msg.sentAt) : undefined,
-        deliveredAt: msg.deliveredAt ? new Date(msg.deliveredAt) : undefined,
-        readAt: msg.readAt ? new Date(msg.readAt) : undefined,
-      }))
+      const transformedMessages = serverMessages.map(mapServerMessage)
 
       setMessages(conversationId, transformedMessages)
     } catch (err) {
@@ -86,12 +81,25 @@ export function useMessages(conversationId: string | null) {
         return
       }
 
+      const to = conversation?.contactPhone
+      const channelType = conversation?.channelType
+      if (!to || !channelType) {
+        toast({
+          title: 'Error',
+          description: 'Conversation is missing recipient/channel info',
+          variant: 'destructive',
+        })
+        return
+      }
+
       try {
         setSending(true)
         clearError()
 
         const response = await api.post('/api/messages', {
           conversationId,
+          to,
+          channelType,
           body: data.body,
           mediaUrls: data.mediaUrls,
         })
@@ -102,21 +110,14 @@ export function useMessages(conversationId: string | null) {
           throw new Error(result?.error?.message || 'Failed to send message')
         }
 
-        // Transform date strings
-        const message = {
-          ...result.data,
-          body: result.data?.body ?? '',
-          createdAt: new Date(result.data.createdAt),
-          updatedAt: new Date(result.data.updatedAt),
-          sentAt: result.data.sentAt ? new Date(result.data.sentAt) : undefined,
-        }
+        const message = mapServerMessage(result.data)
 
         // Add message to store (optimistic update)
         addMessage(message)
 
         // Update conversation last message
         updateConversation(conversationId, {
-          lastMessage: message.body,
+          lastMessage: message.body ?? '',
           lastMessageAt: message.createdAt,
         })
 
@@ -136,7 +137,7 @@ export function useMessages(conversationId: string | null) {
         setSending(false)
       }
     },
-    [conversationId, setSending, addMessage, updateConversation, setError, clearError]
+    [conversationId, conversation, setSending, addMessage, updateConversation, setError, clearError]
   )
 
   // Delete a message
