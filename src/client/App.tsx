@@ -13,6 +13,7 @@ import { useConversations } from './hooks/use-conversations'
 import { useMessages } from './hooks/use-messages'
 import { useUIStore } from './store/ui'
 import { useContactsStore } from './store/contacts'
+import { toast } from './hooks/use-toast'
 import { Search } from 'lucide-react'
 
 function App() {
@@ -93,10 +94,59 @@ function App() {
     URL.revokeObjectURL(url)
   }
 
+  // Settings menu handlers
+  const handleAccountSettings = () => {
+    toast({
+      title: 'Account Settings',
+      description: 'This feature is coming soon!',
+    })
+  }
+
+  const handlePreferences = () => {
+    toast({
+      title: 'Preferences',
+      description: 'This feature is coming soon!',
+    })
+  }
+
+  const handleWebhooks = () => {
+    toast({
+      title: 'Webhooks',
+      description: 'This feature is coming soon!',
+    })
+  }
+
+  const handleApiKeys = () => {
+    toast({
+      title: 'API Keys',
+      description: 'This feature is coming soon!',
+    })
+  }
+
+  const handleDocumentation = () => {
+    window.open('https://github.com/fatih4159/fractal', '_blank')
+  }
+
+  const handleAbout = () => {
+    toast({
+      title: 'Fractal',
+      description: 'A modern messaging platform built with React and Node.js',
+    })
+  }
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onAccountClick={handleAccountSettings}
+        onPreferencesClick={handlePreferences}
+        onWebhooksClick={handleWebhooks}
+        onApiKeysClick={handleApiKeys}
+        onDocumentationClick={handleDocumentation}
+        onAboutClick={handleAbout}
+      />
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
