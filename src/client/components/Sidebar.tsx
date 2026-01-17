@@ -1,4 +1,4 @@
-import { MessageSquare, Users, Settings, FileText } from 'lucide-react'
+import { MessageSquare, Users, Settings, FileText, RefreshCw } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Button } from './ui/button'
 import { Separator } from './ui/separator'
@@ -10,6 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
+import { useState } from 'react'
+import { api } from '../lib/api'
+import { toast } from '../hooks/use-toast'
 
 const tabs = [
   { id: 'conversations', label: 'Conversations', icon: MessageSquare },
@@ -25,6 +28,37 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab = 'conversations', onTabChange }: SidebarProps) {
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  const handleBulkSync = async () => {
+    setIsSyncing(true)
+    try {
+      const response = await api.post('/api/conversations/bulk-sync?limit=1000')
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result?.error?.message || 'Bulk sync failed')
+      }
+
+      toast({
+        title: 'Sync Complete',
+        description: `Imported ${result.data.messagesInserted} messages, created ${result.data.conversationsCreated} conversations`,
+      })
+
+      // Reload the page to show new conversations
+      window.location.reload()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to sync from Twilio'
+      toast({
+        title: 'Sync Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full w-16 bg-primary text-primary-foreground border-r">
       {/* Logo/Brand */}
@@ -76,8 +110,13 @@ export function Sidebar({ activeTab = 'conversations', onTabChange }: SidebarPro
               <Settings className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Settings</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleBulkSync} disabled={isSyncing}>
+              <RefreshCw className={cn('mr-2 h-4 w-4', isSyncing && 'animate-spin')} />
+              {isSyncing ? 'Syncing from Twilio...' : 'Sync from Twilio'}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Account</DropdownMenuItem>
             <DropdownMenuItem>Preferences</DropdownMenuItem>
