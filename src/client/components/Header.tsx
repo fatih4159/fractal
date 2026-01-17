@@ -21,6 +21,8 @@ interface HeaderProps {
   onExportConversation?: () => void
   onArchiveConversation?: () => void
   onDeleteConversation?: () => void
+  onVoiceCall?: () => void
+  onVideoCall?: () => void
 }
 
 export function Header({
@@ -33,6 +35,8 @@ export function Header({
   onExportConversation,
   onArchiveConversation,
   onDeleteConversation,
+  onVoiceCall,
+  onVideoCall,
 }: HeaderProps) {
   const getChannelBadgeColor = (type?: string) => {
     switch (type) {
@@ -107,10 +111,10 @@ export function Header({
       {/* Right: Actions */}
       {contactName && (
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon" title="Voice Call">
+          <Button variant="ghost" size="icon" title="Voice Call" onClick={onVoiceCall} disabled={!onVoiceCall}>
             <Phone className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" title="Video Call">
+          <Button variant="ghost" size="icon" title="Video Call" onClick={onVideoCall} disabled={!onVideoCall}>
             <Video className="h-4 w-4" />
           </Button>
           <DropdownMenu>

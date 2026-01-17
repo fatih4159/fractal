@@ -23,6 +23,7 @@ export function ComposerBar({
   const [mediaUrls, setMediaUrls] = useState<string[]>([])
   const [mediaDialogOpen, setMediaDialogOpen] = useState(false)
   const [mediaUrlDraft, setMediaUrlDraft] = useState('')
+  const [emojiDialogOpen, setEmojiDialogOpen] = useState(false)
 
   const handleSend = () => {
     if (message.trim() || mediaUrls.length > 0) {
@@ -64,6 +65,12 @@ export function ComposerBar({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMessage(e.target.value)
+    onTyping?.()
+  }
+
+  const insertEmoji = (emoji: string) => {
+    setMessage((prev) => prev + emoji)
+    setEmojiDialogOpen(false)
     onTyping?.()
   }
 
@@ -127,6 +134,7 @@ export function ComposerBar({
           variant="ghost"
           size="icon"
           disabled={disabled}
+          onClick={() => setEmojiDialogOpen(true)}
           title="Emoji"
         >
           <Smile className="h-5 w-5" />
@@ -179,6 +187,29 @@ export function ComposerBar({
                 Add
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emojiDialogOpen} onOpenChange={setEmojiDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Emoji</DialogTitle>
+            <DialogDescription>
+              Click an emoji to insert it into your message.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-8 gap-2 p-2">
+            {['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👋', '🤚', '👏', '🙌', '👐', '🤲', '🙏', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '🔥', '✨', '🎉', '🎊', '🎈', '🎁'].map((emoji) => (
+              <Button
+                key={emoji}
+                variant="ghost"
+                className="text-2xl h-12 w-12 p-0 hover:bg-accent"
+                onClick={() => insertEmoji(emoji)}
+              >
+                {emoji}
+              </Button>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
