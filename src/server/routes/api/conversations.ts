@@ -3,6 +3,7 @@ import { prisma } from '../../index.js'
 import { z } from 'zod'
 import { ChannelType } from '../../../shared/types.js'
 import { syncConversationFromTwilio } from '../../services/twilio/history.js'
+import { bulkSyncFromTwilio } from '../../services/twilio/bulk-sync.js'
 
 const router = Router()
 
@@ -291,6 +292,40 @@ router.delete('/:id', async (req, res) => {
     })
   } catch (error) {
     console.error('Error deleting conversation:', error)
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+    })
+  }
+})
+
+/**
+ * POST /api/conversations/bulk-sync - Import all messages from Twilio
+ * This discovers existing conversations and creates contacts/conversations as needed.
+ * Must be defined BEFORE /:id/sync to avoid route collision
+ */
+router.post('/bulk-sync', async (req, res) => {
+  try {
+    const limit = typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : undefined
+    const includeMedia = req.query.includeMedia === 'false' ? false : true
+    const dateAfter = req.query.dateAfter ? new Date(req.query.dateAfter as string) : undefined
+
+    console.log('🚀 Starting bulk sync from Twilio...')
+
+    const result = await bulkSyncFromTwilio({
+      limit: Number.isFinite(limit as any) ? limit : undefined,
+      includeMedia,
+      dateAfter,
+    })
+
+    res.json({
+      success: true,
+      data: result,
+    })
+  } catch (error) {
+    console.error('Error during bulk sync from Twilio:', error)
     res.status(500).json({
       success: false,
       error: {
