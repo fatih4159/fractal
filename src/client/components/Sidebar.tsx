@@ -25,6 +25,12 @@ type ActiveTab = (typeof tabs)[number]['id']
 interface SidebarProps {
   activeTab?: ActiveTab
   onTabChange?: (tab: ActiveTab) => void
+  onAccountClick?: () => void
+  onPreferencesClick?: () => void
+  onWebhooksClick?: () => void
+  onApiKeysClick?: () => void
+  onDocumentationClick?: () => void
+  onAboutClick?: () => void
 }
 
 export function Sidebar({ activeTab = 'conversations', onTabChange }: SidebarProps) {
@@ -123,8 +129,12 @@ export function Sidebar({ activeTab = 'conversations', onTabChange }: SidebarPro
             <DropdownMenuItem>Webhooks</DropdownMenuItem>
             <DropdownMenuItem>API Keys</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Documentation</DropdownMenuItem>
-            <DropdownMenuItem>About</DropdownMenuItem>
+            <DropdownMenuItem onClick={onDocumentationClick} disabled={!onDocumentationClick}>
+              Documentation
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onAboutClick} disabled={!onAboutClick}>
+              About
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
