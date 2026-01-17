@@ -39,9 +39,26 @@ export function useMessages(conversationId: string | null) {
       // Best-effort: backfill from Twilio before reading from DB.
       // If Twilio credentials aren't configured, we still show DB messages.
       try {
-        await api.post(`/api/conversations/${conversationId}/sync?limit=200`)
-      } catch {
-        // ignored (sync is best-effort)
+        const syncResponse = await api.post(`/api/conversations/${conversationId}/sync?limit=200`)
+        if (!syncResponse.ok) {
+          const syncError = await syncResponse.json()
+          console.error('Twilio sync failed:', syncError?.error?.message || 'Unknown error')
+          toast({
+            title: 'Warning',
+            description: `Could not sync with Twilio: ${syncError?.error?.message || 'Unknown error'}`,
+            variant: 'destructive',
+          })
+        } else {
+          const syncResult = await syncResponse.json()
+          console.log('Twilio sync completed:', syncResult?.data)
+        }
+      } catch (err) {
+        console.error('Twilio sync error:', err)
+        toast({
+          title: 'Warning',
+          description: 'Could not sync historical messages from Twilio',
+          variant: 'destructive',
+        })
       }
 
       const response = await api.get(`/api/messages?conversationId=${conversationId}`)

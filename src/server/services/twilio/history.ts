@@ -1,6 +1,7 @@
 import { prisma } from '../../index.js'
 import { twilioClient, formatPhoneNumber, formatWhatsAppNumber, mapTwilioStatus } from './client.js'
 import { ChannelType, Direction, MessageStatus } from '../../../shared/types.js'
+import env from '../../config/env.js'
 
 type TwilioListMessage = Awaited<ReturnType<typeof twilioClient.messages.list>>[number]
 
@@ -12,6 +13,14 @@ function stripTransportPrefix(value: string | null | undefined): string {
 function toTwilioAddress(channelType: ChannelType, identifier: string): string {
   if (channelType === ChannelType.WHATSAPP) return formatWhatsAppNumber(identifier)
   return formatPhoneNumber(identifier)
+}
+
+function getOurTwilioNumber(channelType: ChannelType): string {
+  if (channelType === ChannelType.WHATSAPP) {
+    return formatWhatsAppNumber(env.TWILIO_WHATSAPP_NUMBER || '+14155238886')
+  }
+  // For SMS/MMS, use the configured phone number
+  return formatPhoneNumber(env.TWILIO_PHONE_NUMBER || '')
 }
 
 function inferChannelTypeFromTwilioMessage(message: TwilioListMessage): ChannelType {
@@ -84,22 +93,33 @@ export async function syncConversationFromTwilio(
     throw new Error('Conversation not found')
   }
 
+  console.log(`Syncing conversation ${conversationId} with channel type: ${conversation.channelType}`)
+  console.log(`Contact has ${conversation.contact.channels.length} channels:`, conversation.contact.channels.map(c => ({ type: c.type, identifier: c.identifier, isPrimary: c.isPrimary })))
+
   const channel = conversation.contact.channels.find((c) => c.type === conversation.channelType && c.isPrimary) ??
     conversation.contact.channels.find((c) => c.type === conversation.channelType)
 
   if (!channel) {
-    throw new Error('No matching contact channel found for conversation')
+    throw new Error(`No matching contact channel found for conversation (looking for type: ${conversation.channelType})`)
   }
 
   const contactAddress = toTwilioAddress(conversation.channelType as any, channel.identifier)
+  const ourNumber = getOurTwilioNumber(conversation.channelType as any)
+
+  console.log(`Fetching messages for contact address: ${contactAddress}`)
+  console.log(`Using our Twilio number: ${ourNumber}`)
 
   const pageSize = Math.min(Math.max(limit, 1), 1000)
 
-  // Fetch outbound (to contact) and inbound (from contact), then merge.
+  // Fetch messages between our number and the contact's number
+  // Outbound: from our number TO contact
+  // Inbound: from contact TO our number
   const [outbound, inbound] = await Promise.all([
-    twilioClient.messages.list({ to: contactAddress, pageSize }),
-    twilioClient.messages.list({ from: contactAddress, pageSize }),
+    twilioClient.messages.list({ from: ourNumber, to: contactAddress, pageSize }),
+    twilioClient.messages.list({ from: contactAddress, to: ourNumber, pageSize }),
   ])
+
+  console.log(`Twilio API returned ${outbound.length} outbound and ${inbound.length} inbound messages`)
 
   const merged = [...outbound, ...inbound]
   const bySid = new Map<string, TwilioListMessage>()
@@ -247,6 +267,8 @@ export async function syncConversationFromTwilio(
     })
   }
 
-  return { inserted, updated, twilioFetched: sliced.length }
+  const result = { inserted, updated, twilioFetched: sliced.length }
+  console.log(`Sync complete for conversation ${conversationId}:`, result)
+  return result
 }
 
