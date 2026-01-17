@@ -22,9 +22,24 @@ type ActiveTab = (typeof tabs)[number]['id']
 interface SidebarProps {
   activeTab?: ActiveTab
   onTabChange?: (tab: ActiveTab) => void
+  onAccountClick?: () => void
+  onPreferencesClick?: () => void
+  onWebhooksClick?: () => void
+  onApiKeysClick?: () => void
+  onDocumentationClick?: () => void
+  onAboutClick?: () => void
 }
 
-export function Sidebar({ activeTab = 'conversations', onTabChange }: SidebarProps) {
+export function Sidebar({
+  activeTab = 'conversations',
+  onTabChange,
+  onAccountClick,
+  onPreferencesClick,
+  onWebhooksClick,
+  onApiKeysClick,
+  onDocumentationClick,
+  onAboutClick,
+}: SidebarProps) {
   return (
     <div className="flex flex-col h-full w-16 bg-primary text-primary-foreground border-r">
       {/* Logo/Brand */}
@@ -79,13 +94,25 @@ export function Sidebar({ activeTab = 'conversations', onTabChange }: SidebarPro
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel>Settings</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Account</DropdownMenuItem>
-            <DropdownMenuItem>Preferences</DropdownMenuItem>
-            <DropdownMenuItem>Webhooks</DropdownMenuItem>
-            <DropdownMenuItem>API Keys</DropdownMenuItem>
+            <DropdownMenuItem onClick={onAccountClick} disabled={!onAccountClick}>
+              Account
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onPreferencesClick} disabled={!onPreferencesClick}>
+              Preferences
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onWebhooksClick} disabled={!onWebhooksClick}>
+              Webhooks
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onApiKeysClick} disabled={!onApiKeysClick}>
+              API Keys
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Documentation</DropdownMenuItem>
-            <DropdownMenuItem>About</DropdownMenuItem>
+            <DropdownMenuItem onClick={onDocumentationClick} disabled={!onDocumentationClick}>
+              Documentation
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onAboutClick} disabled={!onAboutClick}>
+              About
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
