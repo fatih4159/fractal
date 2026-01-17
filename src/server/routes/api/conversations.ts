@@ -107,7 +107,7 @@ router.get('/:id', async (req, res) => {
         where: { conversationId: req.params.id },
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
       }),
       prisma.message.count({ where: { conversationId: req.params.id } }),
     ])
@@ -116,7 +116,7 @@ router.get('/:id', async (req, res) => {
       success: true,
       data: {
         ...conversation,
-        messages: messages.reverse(), // Reverse to show oldest first
+        messages, // Already in correct order (oldest first)
       },
       meta: {
         pagination: {
