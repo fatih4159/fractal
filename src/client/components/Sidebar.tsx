@@ -33,7 +33,16 @@ interface SidebarProps {
   onAboutClick?: () => void
 }
 
-export function Sidebar({ activeTab = 'conversations', onTabChange }: SidebarProps) {
+export function Sidebar({
+  activeTab = 'conversations',
+  onTabChange,
+  onAccountClick,
+  onPreferencesClick,
+  onWebhooksClick,
+  onApiKeysClick,
+  onDocumentationClick,
+  onAboutClick
+}: SidebarProps) {
   const [isSyncing, setIsSyncing] = useState(false)
 
   const handleBulkSync = async () => {
@@ -124,10 +133,18 @@ export function Sidebar({ activeTab = 'conversations', onTabChange }: SidebarPro
               {isSyncing ? 'Syncing from Twilio...' : 'Sync from Twilio'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Account</DropdownMenuItem>
-            <DropdownMenuItem>Preferences</DropdownMenuItem>
-            <DropdownMenuItem>Webhooks</DropdownMenuItem>
-            <DropdownMenuItem>API Keys</DropdownMenuItem>
+            <DropdownMenuItem onClick={onAccountClick} disabled={!onAccountClick}>
+              Account
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onPreferencesClick} disabled={!onPreferencesClick}>
+              Preferences
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onWebhooksClick} disabled={!onWebhooksClick}>
+              Webhooks
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onApiKeysClick} disabled={!onApiKeysClick}>
+              API Keys
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDocumentationClick} disabled={!onDocumentationClick}>
               Documentation
